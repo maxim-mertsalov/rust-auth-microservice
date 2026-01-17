@@ -1,6 +1,42 @@
 # Rust Authentication Microservice
 A high-performance, results-driven authentication service built with Rust and Actix Web. This service implements a secure session management system using JWT rotation and a multi-stage state machine for user onboarding and authentication.
 
+## TODO feature list
+### Core Authentication
+- [x] Sign-Up Flow
+  - [x] Plain password registration
+  - [x] Email verification system
+
+- [ ] Sign-In Flow
+  - [x] Plain password authentication
+  - [x] Email 2FA (TOTP/Verification)
+  - [ ] Recovery codes integration
+  - [ ] Multi-email support (Alternative login aliases)
+  - [ ] Passkey (WebAuthn) support
+
+- [ ] External Providers (OAuth2/OIDC)
+  - [ ] Google/GitHub integration
+  - [ ] Smart flow switching (Automatic Sign-In vs. Sign-Up)
+  - [ ] Account linking (Merge OAuth with existing email accounts)
+
+### Session & Security
+- [x] Session Management
+  - [x] Persistent session storage (Redis)
+  - [x] Refresh token rotation (Security best practice)
+  - [x] Device metadata tracking (User-Agent/IP)
+  - [x] Session control: List active, Revoke specific, and Global logout
+
+- [ ] Account Recovery
+  - [ ] Password reset flow (Identity-verified)
+  - [ ] 2FA Recovery code generation
+
+### User Management
+- [ ] Profile & Security Settings
+  - [x] Basic profile updates (Name, etc.)
+  - [ ] Email change process (Requires new verification)
+  - [ ] Account deletion/deactivation flow
+
+
 ## Architecture & Logic
 The service is engineered around a **State-Machine Lifecycle**, ensuring that authentication and registration are not just endpoints, but controlled processes.
 
