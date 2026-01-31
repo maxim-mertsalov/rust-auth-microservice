@@ -4,6 +4,12 @@ DROP TABLE IF EXISTS sessions;
 -- Drop session_status type
 DROP TYPE IF EXISTS session_status;
 
+-- Drop user_recovery_emails table
+DROP TABLE IF EXISTS user_recovery_emails;
+
+-- Drop user_recovery_codes table
+DROP TABLE IF EXISTS user_recovery_codes;
+
 -- Drop users table
 DROP TABLE IF EXISTS users;
 
@@ -19,6 +25,12 @@ DROP TRIGGER IF EXISTS delete_expired_sessions ON sessions;
 -- Drop indexes
 DROP INDEX IF EXISTS idx_users_id;
 DROP INDEX IF EXISTS idx_users_email;
+
 DROP INDEX IF EXISTS idx_sessions_user_id;
 DROP INDEX IF EXISTS idx_sessions_expires_at;
-DROP INDEX IF EXISTS idx_sessions_refresh_token;
+
+DROP INDEX IF EXISTS idx_user_recovery_emails_user_id;
+DROP INDEX IF EXISTS idx_user_recovery_emails_recovery_email;
+
+DROP INDEX IF EXISTS idx_user_recovery_codes_user_id;
+DROP INDEX IF EXISTS idx_user_recovery_codes_recovery_code;
