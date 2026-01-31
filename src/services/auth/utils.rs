@@ -1,6 +1,6 @@
 use std::sync::Arc;
 use log::info;
-use crate::models::auth::utils::TokenCreatorParams;
+use crate::dto::auth::utils::TokenCreatorParams;
 use crate::errors::app_error::AppError;
 use crate::models::auth::sessions::{DeviceInfo, Session, SessionStatus};
 use crate::models::auth::tokens::TokenSession;

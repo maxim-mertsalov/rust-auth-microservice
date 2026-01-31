@@ -36,6 +36,9 @@ pub enum SignUpState {
 
     PasswordStage,
 
+    // Addiction Security Questions Stage,
+    SetQuestionsStage,
+
     Redirect
 }
 

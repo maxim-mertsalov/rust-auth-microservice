@@ -4,28 +4,6 @@ use crate::models::auth::sessions::DeviceInfo;
 use crate::models::auth::signin::SignInState;
 
 
-//# --- initialise with email and password ---
-// Request
-#[derive(Debug, Deserialize, Validate)]
-pub struct InitEmailPassReq {
-    pub device_info: DeviceInfo,
-    pub scopes: Vec<String>,
-    pub final_redirect_url: Option<String>,
-
-    #[validate(email)]
-    pub email: String,
-
-    pub password: String,
-}
-
-// Response
-#[derive(Debug, Serialize)]
-pub struct InitEmailPassRes {
-    pub session_token: String,
-    pub next_stage: SignInState,
-}
-
-
 //# --- initialise with email ---
 // Request
 #[derive(Debug, Deserialize, Validate)]

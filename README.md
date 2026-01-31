@@ -34,6 +34,7 @@ A high-performance, results-driven authentication service built with Rust and Ac
 - [ ] Profile & Security Settings
   - [x] Basic profile updates (Name, etc.)
   - [ ] Email change process (Requires new verification)
+    - [ ] Dynamic verification flow
   - [ ] Account deletion/deactivation flow
 
 

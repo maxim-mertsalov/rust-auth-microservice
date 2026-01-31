@@ -1,10 +1,11 @@
 use std::sync::Arc;
 use log::info;
 use crate::dto::auth::signup::{FinalizeSignUpReq, FinalizeSignUpRes, InitProfileReq, InitProfileRes, InitSessionReq, InitSessionRes, ResendEmailCodeReq, ResendEmailCodeRes, ReturnBackSessionReq, ReturnBackSessionRes, SetEmailReq, SetEmailRes, SetPasswordReq, SetPasswordRes, SetProfileReq, SetProfileRes, VerifyEmailReq, VerifyEmailRes};
+use crate::dto::auth::utils::TokenCreatorParams;
 use crate::errors::app_error::AppError;
 use crate::models::auth::signup::{SignUpData, SignUpSession, SignUpState};
 use crate::models::auth::users::User;
-use crate::models::auth::utils::{Scope, TokenCreatorParams};
+use crate::models::auth::utils::{Scope};
 use crate::repositories::auth::{AuthRepositories};
 use crate::repositories::auth::signup::SignUpRepository;
 use crate::repositories::auth::users::UserRepository;

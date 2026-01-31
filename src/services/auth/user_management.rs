@@ -57,7 +57,7 @@ impl IUserManagementService for UserManagementService{
             return Err(AppError::ExpiredAccessToken);
         }
 
-        let sessions = self.repos.sessions_repo.get_all_by_user_full(&access_token_data.0.sub).await?;
+        let sessions = self.repos.sessions_repo.get_all_by_user_id(&access_token_data.0.sub).await?;
 
         for session in sessions {
             let _ = self.repos.tokens_repo.delete(&session.refresh_token).await;

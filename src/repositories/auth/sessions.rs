@@ -10,8 +10,8 @@ pub trait SessionRepository {
     async fn update_with_refresh(&self, session_id: &str, refresh_token: &str) -> Result<Session, DbError>;
     async fn terminate_with_status(&self, session_id: &str, session_status: SessionStatus) -> Result<Session, DbError>;
     async fn terminate_others_with_status(&self, user_id: &str, session_id: &str, session_status: SessionStatus) -> Result<Vec<Session>, DbError>;
-    async fn get_all_by_user_full(&self, user_id: &str) -> Result<Vec<Session>, DbError>;
-    async fn get_all_by_user_min(&self, user_id: &str) -> Result<Vec<MinFieldsSession>, DbError>;
+    async fn get_all_by_user_id(&self, user_id: &str) -> Result<Vec<Session>, DbError>;
+    async fn get_all_minimised_by_user_id(&self, user_id: &str) -> Result<Vec<MinFieldsSession>, DbError>;
     async fn delete_all_by_user(&self, user_id: &str) -> Result<(), DbError>;
 }
 
@@ -96,7 +96,7 @@ impl SessionRepository for SessionRepositoryPg {
         }
     }
 
-    async fn get_all_by_user_full(&self, user_id: &str) -> Result<Vec<Session>, DbError> {
+    async fn get_all_by_user_id(&self, user_id: &str) -> Result<Vec<Session>, DbError> {
         let user_id = sqlx::types::Uuid::parse_str(user_id)?;
         match sqlx::query_as::<_, Session>("SELECT * FROM sessions WHERE user_id = $1")
             .bind(user_id)
@@ -108,7 +108,7 @@ impl SessionRepository for SessionRepositoryPg {
         }
     }
 
-    async fn get_all_by_user_min(&self, user_id: &str) -> Result<Vec<MinFieldsSession>, DbError> {
+    async fn get_all_minimised_by_user_id(&self, user_id: &str) -> Result<Vec<MinFieldsSession>, DbError> {
         let user_id = sqlx::types::Uuid::parse_str(user_id)?;
         match sqlx::query_as::<_, MinFieldsSession>("SELECT id, device_info, status, expires_at, updated_at, created_at FROM sessions WHERE user_id = $1")
             .bind(user_id)

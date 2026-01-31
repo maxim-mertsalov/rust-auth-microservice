@@ -10,10 +10,11 @@ use crate::repositories::auth::users::{UserRepositoryPg};
 pub mod users;
 pub mod sessions;
 pub mod tokens;
-pub mod password_reset;
 pub mod reset_auth;
 pub mod signup;
 pub mod signin;
+mod recovery_emails;
+mod recovery_codes;
 
 pub struct AuthRepositories {
     pub users_repo: UserRepositoryPg,

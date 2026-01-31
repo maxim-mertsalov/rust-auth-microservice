@@ -156,7 +156,7 @@ impl ISessionService for SessionService {
             return Err(AppError::ExpiredAccessToken);
         }
 
-        let sessions = self.repos.sessions_repo.get_all_by_user_min(&token_data.sub).await?;
+        let sessions = self.repos.sessions_repo.get_all_minimised_by_user_id(&token_data.sub).await?;
 
         Ok(sessions)
     }

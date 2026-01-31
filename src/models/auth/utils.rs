@@ -1,10 +1,11 @@
 use serde::{Deserialize, Serialize};
+use crate::models::auth::sessions::DeviceInfo;
 
-
-#[derive(Debug, Clone)]
-pub struct TokenCreatorParams {
-    pub user_id: sqlx::types::Uuid,
-    pub days_to_inactive: i32,
+#[derive(Deserialize, Serialize, Debug, Clone, Default)]
+pub struct FlowMetadata {
+    pub scopes: Vec<Scope>,
+    pub final_redirect_url: Option<String>,
+    pub device_info: DeviceInfo,
 }
 
 

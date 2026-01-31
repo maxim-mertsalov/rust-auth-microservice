@@ -7,17 +7,6 @@ pub enum MessageSenderError {
 
 impl From<lettre::error::Error> for MessageSenderError {
     fn from(err: lettre::error::Error) -> Self {
-        // match err {
-        //     Error::MissingFrom => {}
-        //     Error::MissingTo => {}
-        //     Error::TooManyFrom => {}
-        //     Error::EmailMissingAt => {}
-        //     Error::EmailMissingLocalPart => {}
-        //     Error::EmailMissingDomain => {}
-        //     Error::CannotParseFilename => {}
-        //     Error::Io(_) => {}
-        //     Error::NonAsciiChars => {}
-        // }
         MessageSenderError::Other(err.to_string())
     }
 }
