@@ -9,7 +9,7 @@ pub trait RecoveryCodesRepository {
     async fn get_by_user_id_and_code(&self, user_id: &str, recovery_code: &str) -> Result<Option<RecoveryCodes>, DbError>;
     async fn get_count_of_codes(&self, user_id: &str) -> Result<i64, DbError>;
     async fn exists(&self, user_id: &str) -> Result<bool, DbError>;
-    async fn delete_with_id(&self, recovery_id: &str) -> Result<(), DbError>;
+    async fn delete_by_id(&self, recovery_id: &str) -> Result<(), DbError>;
     async fn delete_all_by_user(&self, user_id: &str) -> Result<(), DbError>;
 }
 
@@ -66,7 +66,7 @@ impl RecoveryCodesRepository for RecoveryCodesRepositoryPg {
         Ok(exists)
     }
 
-    async fn delete_with_id(&self, recovery_id: &str) -> Result<(), DbError> {
+    async fn delete_by_id(&self, recovery_id: &str) -> Result<(), DbError> {
         let recovery_id = sqlx::types::Uuid::parse_str(recovery_id)?;
 
         let num = sqlx::query("DELETE FROM user_recovery_codes WHERE id = $1")

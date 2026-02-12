@@ -30,6 +30,11 @@ A high-performance, results-driven authentication service built with Rust and Ac
   - [ ] Password reset flow (Identity-verified)
   - [ ] 2FA Recovery code generation
 
+- [ ] Security Enhancements
+  - [ ] Suspicious activity detection (e.g., new device/location)
+  - [ ] Email notifications for critical actions (Password change, New device login)
+  - [ ] TABU list for IPs and User-Agents
+
 ### User Management
 - [ ] Profile & Security Settings
   - [x] Basic profile updates (Name, etc.)

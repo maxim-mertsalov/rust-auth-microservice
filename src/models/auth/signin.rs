@@ -13,28 +13,37 @@ pub struct SignInSession {
 pub const SIGNIN_SESSION_PREFIX: &str = "signin";
 pub const SIGNIN_SESSION_LIFETIME: i64 = 20; // reset every time when request anything
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Copy, PartialOrd, Ord)]
 pub enum AuthenticationMethod {
-    Password,
-    RecoveryEmailCode,
-    RecoveryCode,
-    EmailVerification,
+    #[serde(rename = "password")]
+    Password = 1,
+    #[serde(rename = "recovery_email_verification")]
+    RecoveryEmailCode = 3,
+    #[serde(rename = "recovery_code")]
+    RecoveryCode = 4,
+    #[serde(rename = "email_verification")]
+    EmailVerification = 2,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq, Eq, Copy)]
 pub enum SignInState {
     #[default]
     InitWithEmailStage,
 
-    SetAuthenticationMethodsStage,
+    SelectAuthenticationMethodsStage,
 
     // Authentication methods stages
-    WithPasswordStage, // default first step
+    // 1. Password (default)
+    WithPasswordStage,
 
-    ChoseRecoveryEmailStage,
+    // 2. Recovery Email Code
+    ChoseRecoveryEmailStage, // chose if many recovery emails or skip if only one
     VerifyRecoveryEmailCodeStage,
 
+    // 3. Recovery Code
     WithRecoveryCodeStage,
+
+    // 4. Email Verification
     VerifyEmailStage, // default second step for MFA
 
 

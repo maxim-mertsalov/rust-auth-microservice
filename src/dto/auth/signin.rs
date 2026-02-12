@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use validator::Validate;
 use crate::models::auth::sessions::DeviceInfo;
-use crate::models::auth::signin::SignInState;
+use crate::models::auth::signin::{AuthenticationMethod, SignInState};
 
 
 //# --- initialise with email ---
@@ -20,6 +20,105 @@ pub struct InitEmailReq {
 #[derive(Debug, Serialize)]
 pub struct InitEmailRes {
     pub session_token: String,
+    pub next_stage: SignInState,
+}
+
+
+//# --- get all available authentication methods ---
+// Request
+#[derive(Debug, Deserialize)]
+pub struct GetAuthMethodsReq {
+    pub session_token: String,
+}
+
+// Response
+#[derive(Debug, Serialize)]
+pub struct GetAuthMethodsRes {
+    pub available_methods: Vec<AuthenticationMethod>,
+}
+
+
+//# --- select authentication method ---
+// Request
+#[derive(Debug, Deserialize)]
+pub struct SelectAuthMethodReq {
+    pub session_token: String,
+    pub selected_method: AuthenticationMethod,
+}
+
+// Response
+#[derive(Debug, Serialize)]
+pub struct SelectAuthMethodRes {
+    pub next_stage: SignInState,
+}
+
+//# --- get all recovery emails ---
+// Request
+#[derive(Debug, Deserialize)]
+pub struct GetRecoveryEmailsReq {
+    pub session_token: String,
+}
+
+// Response
+#[derive(Debug, Serialize)]
+pub struct GetRecoveryEmailsRes {
+    pub recovery_emails: Vec<String>,
+}
+
+
+//# --- select recovery email ---
+// Request
+#[derive(Debug, Deserialize)]
+pub struct SelectRecoveryEmailReq {
+    pub session_token: String,
+    pub recovery_email_index: usize,
+}
+
+// Response
+#[derive(Debug, Serialize)]
+pub struct SelectRecoveryEmailRes {
+    pub next_stage: SignInState,
+}
+
+
+//# --- verify recovery email code ---
+// Request
+#[derive(Debug, Deserialize)]
+pub struct VerifyRecoveryEmailCodeReq {
+    pub session_token: String,
+    pub verification_code: String,
+}
+
+// Response
+#[derive(Debug, Serialize)]
+pub struct VerifyRecoveryEmailCodeRes {
+    pub next_stage: SignInState,
+}
+
+
+//# --- resend recovery email code ---
+// Request
+#[derive(Debug, Deserialize)]
+pub struct ResendRecoveryEmailCodeReq {
+    pub session_token: String,
+}
+
+// Response
+#[derive(Debug, Serialize)]
+pub struct ResendRecoveryEmailCodeRes;
+
+
+//# --- set recovery code ---
+// Request
+#[derive(Debug, Deserialize)]
+pub struct SetRecoveryCodeReq {
+    pub session_token: String,
+    pub recovery_code: String,
+}
+
+// Response
+#[derive(Debug, Serialize)]
+pub struct SetRecoveryCodeRes {
     pub next_stage: SignInState,
 }
 

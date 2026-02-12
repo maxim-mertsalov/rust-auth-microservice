@@ -10,7 +10,7 @@ pub trait RecoveryEmailsRepository {
     async fn get_by_user_id(&self, user_id: &str) -> Result<Vec<RecoveryEmails>, DbError>;
     async fn get_by_user_id_verified(&self, user_id: &str) -> Result<Vec<RecoveryEmails>, DbError>;
     async fn get_count_of_emails(&self, user_id: &str) -> Result<i64, DbError>;
-    async fn exists(&self, user_id: &str) -> Result<bool, DbError>;
+    async fn exists_verified(&self, user_id: &str) -> Result<bool, DbError>;
     async fn delete_with_id(&self, email_id: &str) -> Result<(), DbError>;
 }
 
@@ -81,9 +81,9 @@ impl RecoveryEmailsRepository for RecoveryEmailRepositoryPg {
         Ok(count)
     }
 
-    async fn exists(&self, user_id: &str) -> Result<bool, DbError> {
+    async fn exists_verified(&self, user_id: &str) -> Result<bool, DbError> {
         let user_id = sqlx::types::Uuid::parse_str(user_id)?;
-        let exists: bool = sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM user_recovery_emails WHERE user_id = $1)")
+        let exists: bool = sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM user_recovery_emails WHERE user_id = $1 AND verified_at IS NOT NULL)")
             .bind(user_id)
             .fetch_one(&*self.pool)
             .await?;
