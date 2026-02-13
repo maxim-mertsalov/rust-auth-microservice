@@ -227,7 +227,7 @@ impl ISignInService for SignInService {
         }
 
         if session_data.flow.current_method != Some(CURRENT_METHOD) {
-            return Err(AppError::BadRequest("Selected method is correct".to_string()));
+            return Err(AppError::BadRequest("Method does not match current stage".to_string()));
         }
 
         //* Fetch user
@@ -278,7 +278,7 @@ impl ISignInService for SignInService {
         }
 
         if session_data.flow.current_method != Some(CURRENT_METHOD) {
-            return Err(AppError::BadRequest("Selected method is correct".to_string()));
+            return Err(AppError::BadRequest("Method does not match current stage".to_string()));
         }
 
         //* Fetch & map recovery emails
@@ -313,7 +313,7 @@ impl ISignInService for SignInService {
         }
 
         if session_data.flow.current_method != Some(CURRENT_METHOD) {
-            return Err(AppError::BadRequest("Selected method is correct".to_string()));
+            return Err(AppError::BadRequest("Method does not match current stage".to_string()));
         }
 
         //* Get and validate selected email
@@ -360,7 +360,7 @@ impl ISignInService for SignInService {
         }
 
         if session_data.flow.current_method != Some(CURRENT_METHOD) {
-            return Err(AppError::BadRequest("Selected method is correct".to_string()));
+            return Err(AppError::BadRequest("Method does not match current stage".to_string()));
         }
 
         //* Check code
@@ -410,7 +410,7 @@ impl ISignInService for SignInService {
         }
 
         if session_data.flow.current_method != Some(CURRENT_METHOD) {
-            return Err(AppError::BadRequest("Selected method is correct".to_string()));
+            return Err(AppError::BadRequest("Method does not match current stage".to_string()));
         }
 
         //* Fetch codes and validate
@@ -436,7 +436,7 @@ impl ISignInService for SignInService {
 
                 self.repos.signin_repo.update(&user_req.session_token, &session_data).await?;
 
-                return Err(AppError::BadRequest("Invalid password".to_string()));
+                return Err(AppError::BadRequest("Invalid recovery code".to_string()));
             }
         }
 
@@ -470,7 +470,7 @@ impl ISignInService for SignInService {
         }
 
         if session_data.flow.current_method != Some(CURRENT_METHOD) {
-            return Err(AppError::BadRequest("Selected method is correct".to_string()));
+            return Err(AppError::BadRequest("Method does not match current stage".to_string()));
         }
 
         //* Check code
@@ -526,7 +526,7 @@ impl ISignInService for SignInService {
             .ok_or_else(|| AppError::BadRequest("Current authentication method is not set".to_string()))?;
 
         if !AVAILABLE_METHODS.contains(&current_method) {
-            return Err(AppError::BadRequest("Selected method is correct".to_string()));
+            return Err(AppError::BadRequest("Method does not match current stage".to_string()));
         }
 
         //* Check time difference between now and last resent code time

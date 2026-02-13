@@ -17,12 +17,12 @@ pub const SIGNIN_SESSION_LIFETIME: i64 = 20; // reset every time when request an
 pub enum AuthenticationMethod {
     #[serde(rename = "password")]
     Password = 1,
+    #[serde(rename = "email_verification")]
+    EmailVerification = 2,
     #[serde(rename = "recovery_email_verification")]
     RecoveryEmailCode = 3,
     #[serde(rename = "recovery_code")]
     RecoveryCode = 4,
-    #[serde(rename = "email_verification")]
-    EmailVerification = 2,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq, Eq, Copy)]
