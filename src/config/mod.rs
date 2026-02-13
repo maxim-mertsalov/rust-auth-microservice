@@ -10,6 +10,7 @@ pub struct AppConfig{
 
     // Secret keys
     pub secret_key: String, // used for signing JWT tokens
+    pub sudo_secret_key: String, // used for signing sudo tokens
     pub hash_secret: String, // used for salting password hashes
 
     // Database
@@ -40,6 +41,8 @@ impl AppConfig {
         // Secret key
         let secret_key = env::var("SECRET").expect("SECRET must be set");
 
+        let sudo_secret_key = env::var("SUDO_SECRET").unwrap_or_else(|_| secret_key.clone());
+
         // Hash secret
         let hash_secret = env::var("HASH_SECRET").unwrap_or_else(|_| secret_key.clone());
 
@@ -61,6 +64,7 @@ impl AppConfig {
             pg_url,
             redis_url,
             secret_key,
+            sudo_secret_key,
             hash_secret,
             require_email_confirmation,
             enable_email_reset,

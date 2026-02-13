@@ -10,7 +10,7 @@ use crate::repositories::auth::sessions::SessionRepository;
 use crate::repositories::auth::tokens::TokenSessionRepository;
 use crate::state::app_state::AppState;
 use crate::utils::converter::Converter;
-use crate::utils::tokens::TokenBuilder;
+use crate::utils::access_tokens::TokenBuilder;
 
 #[async_trait::async_trait]
 pub trait IAuthUtilsService {

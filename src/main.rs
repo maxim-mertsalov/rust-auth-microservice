@@ -56,6 +56,7 @@ async fn main() -> std::io::Result<()> {
         .with_pg_pool(shared_pg_pool)
         .with_redis_pool(shared_redis_pool)
         .with_secret_key(config.secret_key)
+        .with_sudo_secret_key(config.sudo_secret_key)
         .with_cost(8)
         .with_enable_email_reset(config.enable_email_reset)
         .with_require_email_confirmation(config.require_email_confirmation)

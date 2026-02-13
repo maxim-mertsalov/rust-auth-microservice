@@ -15,6 +15,7 @@ pub struct AppState {
 
     //* Secret keys
     secret_key: String, // secret key for signing JWT tokens
+    sudo_secret_key: String,
 
     //* Hashing
     cost: u32,
@@ -37,6 +38,7 @@ pub struct AppStateBuilder {
     redis: Option<Arc<RedisPool>>,
 
     secret_key: Option<String>,
+    sudo_secret_key: Option<String>,
 
     cost: u32,
     hash_secret: Option<[u8; 16]>,
@@ -54,6 +56,7 @@ impl AppStateBuilder {
             redis: None,
             
             secret_key: None,
+            sudo_secret_key: None,
 
             cost: 8,
             hash_secret: None,
@@ -69,6 +72,7 @@ impl AppStateBuilder {
     pub fn with_redis_pool(mut self, redis: Arc<RedisPool>) -> Self { self.redis = Some(redis); self }
 
     pub fn with_secret_key(mut self, secret_key: String) -> Self { self.secret_key = Some(secret_key); self }
+    pub fn with_sudo_secret_key(mut self, sudo_secret_key: String) -> Self { self.sudo_secret_key = Some(sudo_secret_key); self }
     pub fn with_cost(mut self, cost: u32) -> Self { self.cost = cost; self }
 
     pub fn with_require_email_confirmation(mut self, require: bool) -> Self { self.require_email_confirmation = require; self }
@@ -83,6 +87,7 @@ impl AppStateBuilder {
             redis: self.redis.ok_or("Redis pool is required")?,
 
             secret_key: self.secret_key.ok_or("Secret key is required")?,
+            sudo_secret_key: self.sudo_secret_key.ok_or("Sudo secret key is required")?,
 
             cost: self.cost,
 
@@ -106,6 +111,9 @@ impl AppState {
     pub fn get_secret_key(&self) -> &String {
         &self.secret_key
     }
+
+    /// Get a reference to the sudo secret key
+    pub fn get_sudo_secret_key(&self) -> &String { &self.sudo_secret_key }
 
     /// Get the cost for password hashing
     pub fn get_cost(&self) -> u32 { self.cost }

@@ -36,7 +36,7 @@ async fn test_argon2(req_body: String, state: web::Data<Arc<AppState>>) -> Resul
 
 #[get("/test/refresh")]
 async fn refresh_test(_: web::Data<Arc<AppState>>) -> Result<HttpResponse, AppError> {
-    let refresh_test = crate::utils::tokens::TokenBuilder::generate_refresh_token();
+    let refresh_test = crate::utils::access_tokens::TokenBuilder::generate_refresh_token();
 
     let msg = format!("Refresh token: {}", refresh_test);
 

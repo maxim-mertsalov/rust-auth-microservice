@@ -7,3 +7,4 @@ pub mod signin;
 pub mod utils;
 pub mod recovery_codes;
 pub mod recovery_emails;
+pub mod sudo_tokens;
