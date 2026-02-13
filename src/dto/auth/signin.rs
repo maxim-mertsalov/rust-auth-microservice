@@ -12,6 +12,8 @@ pub struct InitEmailReq {
     pub scopes: Vec<String>,
     pub final_redirect_url: Option<String>,
 
+    pub access_token: Option<String>, // only in sudo_mode flow
+
     #[validate(email)]
     pub email: String,
 }

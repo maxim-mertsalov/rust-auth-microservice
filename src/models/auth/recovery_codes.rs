@@ -5,6 +5,7 @@ use sqlx::FromRow;
 pub struct RecoveryCodes {
     pub id: sqlx::types::Uuid,
     pub user_id: sqlx::types::Uuid,
+    pub prefix: String,
     pub recovery_code: String,
     pub created_at: chrono::DateTime<chrono::Utc>,
 }

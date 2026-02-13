@@ -1,11 +1,13 @@
 use serde::{Deserialize, Serialize};
 use crate::models::auth::sessions::DeviceInfo;
+use crate::models::auth::sudo_tokens::SudoTokenScope;
 
 #[derive(Deserialize, Serialize, Debug, Clone, Default)]
 pub struct AuthFlowMetadata {
     pub scopes: Vec<Scope>,
     pub final_redirect_url: Option<String>,
     pub device_info: DeviceInfo,
+    pub sudo_scope: Option<SudoTokenScope>,
 }
 
 
@@ -30,7 +32,6 @@ impl Scope {
             "profile" => Some(Scope::Profile),
             "email" => Some(Scope::Email),
             "offline_access" => Some(Scope::OfflineAccess),
-            "sudo_mode" => Some(Scope::SudoMode),
             _ => None,
         }
     }

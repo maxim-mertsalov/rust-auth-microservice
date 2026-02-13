@@ -175,7 +175,7 @@ async fn signin_finalise(state: web::Data<Arc<AppState>>, req: web::Json<signin_
 
     let api_resp: ApiResponse<signin_dto::FinalizeSignInRes> = ApiResponse {
         status: "success".to_string(),
-        message: "Email is verified successfully".to_string(),
+        message: "Sign-In finished successfully".to_string(),
         data: Some(sign_up_res),
     };
 

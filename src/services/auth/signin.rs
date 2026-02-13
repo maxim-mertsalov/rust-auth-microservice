@@ -13,8 +13,10 @@ use crate::repositories::auth::users::UserRepository;
 use crate::services::auth::utils::{AuthUtilsService, IAuthUtilsService};
 use crate::services::email_sender::EmailSender;
 use crate::state::app_state::AppState;
+use crate::utils::access_tokens::TokenBuilder;
 use crate::utils::scope_validator::validate_scopes;
 use crate::utils::signin_utils::mask_emails;
+use crate::utils::sudo_tokens::SudoTokenBuilder;
 
 /// This trait defines all services related to user sign up, e.g. email confirmation, email and password validation, etc.
 #[async_trait::async_trait]
@@ -79,13 +81,24 @@ impl ISignInService for SignInService {
         }
 
         let parsed_scopes = validate_scopes(&user_req.scopes);
-        let requested_sudo= parsed_scopes.contains(&Scope::SudoMode);
+        let requested_sudo = parsed_scopes.sudo_scope.is_some();
+
+        if requested_sudo {
+            let access_token = user_req.access_token
+                .ok_or_else(|| AppError::BadRequest("Access token is required for sudo scope".to_string()))?;
+            let (claims, verify_access) = TokenBuilder::decode_access_token(&access_token, app_state.get_secret_key())?;
+
+            if verify_access || claims.sub != user_id {
+                return Err(AppError::BadRequest("Invalid access token".to_string()));
+            }
+        }
 
         let session_data = SignInSession {
             metadata: AuthFlowMetadata {
-                scopes: parsed_scopes,
+                scopes: parsed_scopes.scopes,
                 final_redirect_url: user_req.final_redirect_url,
                 device_info: user_req.device_info,
+                sudo_scope: parsed_scopes.sudo_scope,
             },
             identifier: SignInFlowIdentifier {
                 user_id,
@@ -113,7 +126,7 @@ impl ISignInService for SignInService {
         Ok(response)
     }
 
-    async fn get_auth_methods(&self, app_state: &AppState, user_req: GetAuthMethodsReq) -> Result<GetAuthMethodsRes, AppError> {
+    async fn get_auth_methods(&self, _app_state: &AppState, user_req: GetAuthMethodsReq) -> Result<GetAuthMethodsRes, AppError> {
         const CURRENT_STAGE: SignInState = SignInState::SelectAuthenticationMethodsStage;
         const AVAILABLE_STAGES: &[SignInState] = &[
             SignInState::SelectAuthenticationMethodsStage,
@@ -147,7 +160,7 @@ impl ISignInService for SignInService {
         Ok(response)
     }
 
-    async fn select_auth_method(&self, app_state: &AppState, user_req: SelectAuthMethodReq) -> Result<SelectAuthMethodRes, AppError> {
+    async fn select_auth_method(&self, _app_state: &AppState, user_req: SelectAuthMethodReq) -> Result<SelectAuthMethodRes, AppError> {
         const CURRENT_STAGE: SignInState = SignInState::SelectAuthenticationMethodsStage;
 
         let Some(mut session_data) = self.repos.signin_repo.get(&user_req.session_token).await? else {
@@ -207,7 +220,7 @@ impl ISignInService for SignInService {
         Ok(response)
     }
 
-    async fn set_password(&self, app_state: &AppState, user_req: SetPasswordReq) -> Result<SetPasswordRes, AppError> {
+    async fn set_password(&self, _app_state: &AppState, user_req: SetPasswordReq) -> Result<SetPasswordRes, AppError> {
         const CURRENT_STAGE: SignInState = SignInState::WithPasswordStage;
         const CURRENT_METHOD: AuthenticationMethod = AuthenticationMethod::Password;
         const MAX_ATTEMPTS: u8 = 5;
@@ -259,7 +272,7 @@ impl ISignInService for SignInService {
         Ok(response)
     }
 
-    async fn get_recovery_emails(&self, app_state: &AppState, user_req: GetRecoveryEmailsReq) -> Result<GetRecoveryEmailsRes, AppError> {
+    async fn get_recovery_emails(&self, _app_state: &AppState, user_req: GetRecoveryEmailsReq) -> Result<GetRecoveryEmailsRes, AppError> {
         const CURRENT_STAGE: SignInState = SignInState::ChoseRecoveryEmailStage;
         const CURRENT_METHOD: AuthenticationMethod = AuthenticationMethod::RecoveryEmailCode;
 
@@ -293,7 +306,7 @@ impl ISignInService for SignInService {
         Ok(response)
     }
 
-    async fn select_recovery_email(&self, app_state: &AppState, user_req: SelectRecoveryEmailReq) -> Result<SelectRecoveryEmailRes, AppError> {
+    async fn select_recovery_email(&self, _app_state: &AppState, user_req: SelectRecoveryEmailReq) -> Result<SelectRecoveryEmailRes, AppError> {
         const CURRENT_STAGE: SignInState = SignInState::ChoseRecoveryEmailStage;
         const NEXT_STAGE: SignInState = SignInState::VerifyRecoveryEmailCodeStage;
         const CURRENT_METHOD: AuthenticationMethod = AuthenticationMethod::RecoveryEmailCode;
@@ -340,7 +353,7 @@ impl ISignInService for SignInService {
         Ok(response)
     }
 
-    async fn verify_recovery_email_code(&self, app_state: &AppState, user_req: VerifyRecoveryEmailCodeReq) -> Result<VerifyRecoveryEmailCodeRes, AppError> {
+    async fn verify_recovery_email_code(&self, _app_state: &AppState, user_req: VerifyRecoveryEmailCodeReq) -> Result<VerifyRecoveryEmailCodeRes, AppError> {
         const CURRENT_STAGE: SignInState = SignInState::VerifyRecoveryEmailCodeStage;
         const CURRENT_METHOD: AuthenticationMethod = AuthenticationMethod::RecoveryEmailCode;
         const MAX_ATTEMPTS: u8 = 5;
@@ -390,7 +403,7 @@ impl ISignInService for SignInService {
         Ok(response)
     }
 
-    async fn set_recovery_code(&self, app_state: &AppState, user_req: SetRecoveryCodeReq) -> Result<SetRecoveryCodeRes, AppError> {
+    async fn set_recovery_code(&self, _app_state: &AppState, user_req: SetRecoveryCodeReq) -> Result<SetRecoveryCodeRes, AppError> {
         const CURRENT_STAGE: SignInState = SignInState::WithRecoveryCodeStage;
         const CURRENT_METHOD: AuthenticationMethod = AuthenticationMethod::RecoveryCode;
         const MAX_ATTEMPTS: u8 = 5;
@@ -417,8 +430,6 @@ impl ISignInService for SignInService {
         let parts = user_req.recovery_code.split('-').collect::<Vec<&str>>();
         let prefix = parts.first()
             .ok_or_else(|| AppError::BadRequest("Invalid recovery code format".to_string()))?;
-
-        let code = parts[1..parts.len()].join("");
 
         let res = self.repos.recovery_codes_repo.get_by_user_id_and_prefix(&session_data.identifier.user_id, prefix).await?;
 
@@ -464,7 +475,7 @@ impl ISignInService for SignInService {
         Ok(response)
     }
 
-    async fn verify_email(&self, app_state: &AppState, user_req: VerifyEmailReq) -> Result<VerifyEmailRes, AppError> {
+    async fn verify_email(&self, _app_state: &AppState, user_req: VerifyEmailReq) -> Result<VerifyEmailRes, AppError> {
         const CURRENT_STAGE: SignInState = SignInState::VerifyEmailStage;
         const CURRENT_METHOD: AuthenticationMethod = AuthenticationMethod::EmailVerification;
         const MAX_ATTEMPTS: u8 = 5;
@@ -515,7 +526,7 @@ impl ISignInService for SignInService {
         Ok(response)
     }
 
-    async fn resend_code(&self, app_state: &AppState, user_req: ResendCodeReq) -> Result<ResendCodeRes, AppError> {
+    async fn resend_code(&self, _app_state: &AppState, user_req: ResendCodeReq) -> Result<ResendCodeRes, AppError> {
         const AVAILABLE_STAGES: &[SignInState] = &[ SignInState::VerifyEmailStage, SignInState::VerifyRecoveryEmailCodeStage ];
         const AVAILABLE_METHODS: &[AuthenticationMethod] = &[ AuthenticationMethod::EmailVerification, AuthenticationMethod::RecoveryEmailCode ];
         const TIME_DIFFERENCE: u8 = 60; // seconds
@@ -596,9 +607,14 @@ impl ISignInService for SignInService {
             user_id: user.id,
             days_to_inactive: user.days_to_inactive,
         };
-
         let (access_token, refresh_token) = self.token_creator
             .create_tokens_and_session(app_state, &token_params, session_data.metadata.device_info).await?;
+
+        let sudo_token = if let Some(sudo_scope) = session_data.metadata.sudo_scope {
+            Some(SudoTokenBuilder::build_sudo_token(&user_id, sudo_scope, app_state.get_sudo_secret_key())?)
+        } else {
+            None
+        };
 
         let mut response = FinalizeSignInRes {
             redirect_url: session_data.metadata.final_redirect_url,
@@ -621,7 +637,7 @@ impl ISignInService for SignInService {
                     response.refresh_token = Some(refresh_token.clone());
                 }
                 Scope::SudoMode => {
-                    response.sudo_token = Some("TODO: generate sudo token".to_string());
+                    response.sudo_token = sudo_token.clone();
                 }
             }
         }

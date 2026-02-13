@@ -4,7 +4,6 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Serialize, Deserialize)]
 pub struct SudoTokenClaims {
     pub sub: String, // user_id
-    pub session_id: String, // session_id
     pub scope: SudoTokenScope,
     pub exp: usize, // expiration time as unix timestamp
     pub iat: usize, // issued at as unix timestamp
@@ -29,4 +28,6 @@ pub enum SudoTokenScope {
     GenerateRecoveryCodes,
     #[serde(rename = "revoke_sessions")]
     RevokeSessions,
+    #[serde(rename = "all")]
+    All
 }

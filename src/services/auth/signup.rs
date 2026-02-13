@@ -46,7 +46,7 @@ impl ISignUpService for SignUpService {
         let session_id = uuid::Uuid::new_v4().to_string();
 
         let session_data = SignUpSession {
-            scopes: parsed_scopes,
+            scopes: parsed_scopes.scopes,
             final_redirect_url: user_req.final_redirect_url,
             device_info: user_req.device_info,
             stage: NEXT_STAGE,
@@ -74,7 +74,7 @@ impl ISignUpService for SignUpService {
         let session_id = uuid::Uuid::new_v4().to_string();
 
         let session_data = SignUpSession {
-            scopes: parsed_scopes,
+            scopes: parsed_scopes.scopes,
             device_info: user_req.device_info,
             final_redirect_url: user_req.final_redirect_url,
 

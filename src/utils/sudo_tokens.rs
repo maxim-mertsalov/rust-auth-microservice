@@ -7,10 +7,9 @@ pub struct SudoTokenBuilder;
 
 
 impl SudoTokenBuilder {
-    pub fn build_sudo_token(user_id: &String, session_id: &String, scope: SudoTokenScope, secret: &String) -> Result<String, AppError> {
+    pub fn build_sudo_token(user_id: &String, scope: SudoTokenScope, secret: &String) -> Result<String, AppError> {
         let claims = SudoTokenClaims {
             sub: user_id.clone(),
-            session_id: session_id.clone(),
             scope,
             exp: (chrono::Utc::now() + chrono::Duration::minutes(SUDO_TOKEN_EXPIRY_MINUTES)).timestamp() as usize,
             iat: chrono::Utc::now().timestamp() as usize,
@@ -24,7 +23,7 @@ impl SudoTokenBuilder {
     pub fn decode_sudo_token(token: &str, secret: &str) -> Result<(SudoTokenClaims, bool), AppError> {
         let mut validation = jsonwebtoken::Validation::default();
         validation.validate_exp = false;
-        validation.set_required_spec_claims(&["sub", "session_id", "scope", "exp", "iat"]);
+        validation.set_required_spec_claims(&["sub", "scope", "exp", "iat"]);
 
         let decoding_key = DecodingKey::from_secret(secret.as_ref());
 
