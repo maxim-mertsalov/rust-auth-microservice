@@ -1,10 +1,10 @@
 pub mod sessions;
 pub mod users;
 pub mod tokens;
-pub mod reset_auth;
 pub mod signup;
 pub mod signin;
 pub mod utils;
 pub mod recovery_codes;
 pub mod recovery_emails;
 pub mod sudo_tokens;
+pub mod email_verification;

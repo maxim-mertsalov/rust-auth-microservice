@@ -1,5 +1,4 @@
 use std::sync::Arc;
-use log::info;
 use crate::dto::auth::signup::{FinalizeSignUpReq, FinalizeSignUpRes, InitProfileReq, InitProfileRes, InitSessionReq, InitSessionRes, ResendEmailCodeReq, ResendEmailCodeRes, ReturnBackSessionReq, ReturnBackSessionRes, SetEmailReq, SetEmailRes, SetPasswordReq, SetPasswordRes, SetProfileReq, SetProfileRes, VerifyEmailReq, VerifyEmailRes};
 use crate::dto::auth::utils::TokenCreatorParams;
 use crate::errors::app_error::AppError;
@@ -227,7 +226,9 @@ impl ISignUpService for SignUpService {
                 return Err(AppError::BadRequest("Too many attempts. Make sure you've entered the correct email".to_string()));
             }
 
-            let _ = self.repos.signup_repo.increment_attempts(&user_req.session_token).await?;
+            session.attempts += 1;
+
+            let _ = self.repos.signup_repo.update(&user_req.session_token, &session).await?;
             return Err(AppError::BadRequest("Invalid verification code".to_string()));
         }
 

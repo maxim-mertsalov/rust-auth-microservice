@@ -11,7 +11,7 @@ pub struct SignInSession {
 }
 
 pub const SIGNIN_SESSION_PREFIX: &str = "signin";
-pub const SIGNIN_SESSION_LIFETIME: i64 = 20; // reset every time when request anything
+pub const SIGNIN_SESSION_LIFETIME: u64 = 20; // reset every time when request anything
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Copy, PartialOrd, Ord)]
 pub enum AuthenticationMethod {
