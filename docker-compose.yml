@@ -38,7 +38,7 @@ services:
 
   # 2. Main Storage (PostgreSQL)
   postgres:
-    image: postgres:16-alpine
+    image: postgres:18-alpine
     environment:
       - POSTGRES_USER=user
       - POSTGRES_PASSWORD=password

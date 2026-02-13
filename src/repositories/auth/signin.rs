@@ -10,9 +10,6 @@ use crate::models::auth::signin::{SignInSession, SignInState, SIGNIN_SESSION_LIF
 pub trait SignInRepository {
     async fn create(&self, session_id: &str, session_data: &SignInSession) -> Result<(), DbError>;
     async fn update(&self, session_id: &str, session_data: &SignInSession) -> Result<(), DbError>;
-    async fn update_stage(&self, session_id: &str, stage: SignInState) -> Result<(), DbError>;
-    async fn update_code(&self, session_id: &str, code: &str) -> Result<(), DbError>;
-    async fn increment_attempts(&self, session_id: &str) -> Result<u8, DbError>;
     async fn get(&self, session_id: &str) -> Result<Option<SignInSession>, DbError>;
     async fn delete(&self, session_id: &str) -> Result<(), DbError>;
 }
@@ -50,73 +47,6 @@ impl SignInRepository for SignInRepositoryRedis {
         let _: bool = conn.expire(key.clone(), expiration_seconds).await?;
 
         Ok(())
-    }
-
-    async fn update_stage(&self, session_id: &str, stage: SignInState) -> Result<(), DbError> {
-        let mut conn = self.pool.get().await?;
-
-        let expiration_seconds = SIGNIN_SESSION_LIFETIME * 60;
-
-        let key = format!("{}:{}", SIGNIN_SESSION_PREFIX, session_id);
-
-        let session_data_string: Option<String> = conn.get(key.clone()).await?;
-
-        match session_data_string {
-            Some(data_str) => {
-                let mut session_data: SignInSession = serde_json::from_str(&data_str).map_err(|e| DbError::Unknown(e.to_string()))?;
-                session_data.stage = stage;
-                let _: () = conn.set(key.clone(), json!(session_data).to_string()).await?;
-
-                let _: bool = conn.expire(key, expiration_seconds).await?;
-                Ok(())
-            },
-            None => Err(DbError::NotFound("Signin session is not found".to_string())),
-        }
-    }
-
-    async fn update_code(&self, session_id: &str, code: &str) -> Result<(), DbError> {
-        let mut conn = self.pool.get().await?;
-
-        let expiration_seconds = SIGNIN_SESSION_LIFETIME * 60;
-
-        let key = format!("{}:{}", SIGNIN_SESSION_PREFIX, session_id);
-
-        let session_data_string: Option<String> = conn.get(key.clone()).await?;
-
-        match session_data_string {
-            Some(data_str) => {
-                let mut session_data: SignInSession = serde_json::from_str(&data_str).map_err(|e| DbError::Unknown(e.to_string()))?;
-                session_data.verification_code = code.to_string();
-                session_data.attempts = 0;
-                let _: () = conn.set(key.clone(), json!(session_data).to_string()).await?;
-
-                let _: bool = conn.expire(key, expiration_seconds).await?;
-                Ok(())
-            },
-            None => Err(DbError::NotFound("Signin session is not found".to_string())),
-        }
-    }
-
-    async fn increment_attempts(&self, session_id: &str) -> Result<u8, DbError> {
-        let mut conn = self.pool.get().await?;
-
-        let expiration_seconds = SIGNIN_SESSION_LIFETIME * 60;
-
-        let key = format!("{}:{}", SIGNIN_SESSION_PREFIX, session_id);
-
-        let session_data_string: Option<String> = conn.get(key.clone()).await?;
-
-        match session_data_string {
-            Some(data_str) => {
-                let mut session_data: SignInSession = serde_json::from_str(&data_str).map_err(|e| DbError::Unknown(e.to_string()))?;
-                session_data.attempts += 1;
-                let _: () = conn.set(key.clone(), json!(session_data).to_string()).await?;
-
-                let _: bool = conn.expire(key, expiration_seconds).await?;
-                Ok(session_data.attempts)
-            },
-            None => Err(DbError::NotFound("Signin session is not found".to_string())),
-        }
     }
 
     async fn get(&self, session_id: &str) -> Result<Option<SignInSession>, DbError> {

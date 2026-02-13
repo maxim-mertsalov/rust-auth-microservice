@@ -10,7 +10,6 @@ use crate::services::email_sender::EmailSender;
 pub mod user_management;
 pub mod session;
 mod utils;
-mod password_reset;
 pub mod signup;
 pub mod signin;
 
