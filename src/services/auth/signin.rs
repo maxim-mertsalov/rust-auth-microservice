@@ -92,6 +92,8 @@ impl ISignInService for SignInService {
             flow: SignInFlow {
                 satisfied_methods: vec![],
                 available_methods,
+                blocked_methods: vec![],
+                incorrect_attempts: 0,
                 current_method: Some(AuthenticationMethod::Password),
                 stage: NEXT_STAGE,
             },
@@ -128,9 +130,7 @@ impl ISignInService for SignInService {
             return Err(AppError::BadRequest("Invalid sign-in session stage".to_string()));
         }
 
-        if session_data.flow.current_method.is_none() {
-            return Err(AppError::InternalServerError("No current method selected".to_string()));
-        }
+        self.check_global_max_attempts(&user_req.session_token, &session_data).await?;
 
         //* change stage, if needed
         if session_data.flow.stage != CURRENT_STAGE {
@@ -153,15 +153,19 @@ impl ISignInService for SignInService {
             return Err(AppError::BadRequest("Sign-in session not found".to_string()))
         };
 
+        //* Validate session stage and method
         if session_data.flow.stage != CURRENT_STAGE {
             return Err(AppError::BadRequest("Invalid sign-in session stage".to_string()));
         }
+
+        self.check_global_max_attempts(&user_req.session_token, &session_data).await?;
 
         if !session_data.flow.available_methods.contains(&user_req.selected_method) {
             return Err(AppError::BadRequest("Unavailable method".to_string()));
         }
 
-        // Determine the next stage based on the method
+
+        //* Determine the next stage based on the method
         let next_stage = match user_req.selected_method {
             AuthenticationMethod::Password => SignInState::WithPasswordStage,
             AuthenticationMethod::RecoveryEmailCode => SignInState::ChoseRecoveryEmailStage,
@@ -169,12 +173,12 @@ impl ISignInService for SignInService {
             AuthenticationMethod::EmailVerification => SignInState::VerifyEmailStage, // only here we send code
         };
 
-        // Perform the side effects if the method actually changed
+        //* Perform the side effects if the method actually changed
         if session_data.flow.current_method != Some(user_req.selected_method) {
             session_data.flow.current_method = Some(user_req.selected_method);
             session_data.data = Default::default();
 
-            // If email verification is selected, generate and send code
+            //? If email verification is selected, generate and send code
             if user_req.selected_method == AuthenticationMethod::EmailVerification {
                 let user = self.repos.users_repo.get_full_by_id(
                     &session_data.identifier.user_id
@@ -193,7 +197,7 @@ impl ISignInService for SignInService {
 
         }
 
-        // Update the session stage and assign to next_stage
+        //* Update the session stage and assign to next_stage
         session_data.flow.stage = next_stage;
 
         // Save changes
@@ -235,10 +239,7 @@ impl ISignInService for SignInService {
         //* Verify password
         if !bcrypt::verify(&user_req.password, &user.password)? {
             if session_data.data.attempts >= MAX_ATTEMPTS - 1 {
-                // self.repos.signin_repo.delete(&user_req.session_token).await?;
-                // TODO: too harsh? I think we should just block for some time
-
-                return Err(AppError::BadRequest("Too many attempts. Try another authentication method".to_string()));
+                self.block_auth_method(&user_req.session_token, &mut session_data).await?;
             }
 
             session_data.data.attempts += 1;
@@ -368,11 +369,7 @@ impl ISignInService for SignInService {
 
         if *code != user_req.verification_code {
             if session_data.data.attempts >= MAX_ATTEMPTS - 1 {
-                // self.repos.signin_repo.delete(&user_req.session_token).await?;
-                //TODO: too harsh? I think we should regenerate code and also add global regeneration limit
-                //TODO: Add ip to blacklist for this user if regeneration limit exceeded
-
-                return Err(AppError::BadRequest("Too many attempts. Try another authentication method".to_string()));
+                self.block_auth_method(&user_req.session_token, &mut session_data).await?;
             }
 
             session_data.data.attempts += 1;
@@ -425,8 +422,7 @@ impl ISignInService for SignInService {
             },
             None => {
                 if session_data.data.attempts >= MAX_ATTEMPTS - 1 {
-                    //TODO: too harsh? I think we should just block for some time
-                    return Err(AppError::BadRequest("Too many attempts. Try another authentication method".to_string()));
+                    self.block_auth_method(&user_req.session_token, &mut session_data).await?;
                 }
 
                 session_data.data.attempts += 1;
@@ -445,6 +441,57 @@ impl ISignInService for SignInService {
         self.repos.signin_repo.update(&user_req.session_token, &session_data).await?;
 
         let response = SetRecoveryCodeRes { next_stage: session_data.flow.stage };
+        Ok(response)
+    }
+
+    async fn verify_email(&self, app_state: &AppState, user_req: VerifyEmailReq) -> Result<VerifyEmailRes, AppError> {
+        const CURRENT_STAGE: SignInState = SignInState::VerifyEmailStage;
+        const CURRENT_METHOD: AuthenticationMethod = AuthenticationMethod::EmailVerification;
+        const MAX_ATTEMPTS: u8 = 5;
+
+        let Some(mut session_data) = self.repos.signin_repo.get(&user_req.session_token).await? else {
+            return Err(AppError::BadRequest("Sign-in session not found".to_string()))
+        };
+
+        //* Validate session stage and method
+        if session_data.flow.stage != CURRENT_STAGE {
+            return Err(AppError::BadRequest("Invalid sign-in session stage".to_string()));
+        }
+
+        if !session_data.flow.available_methods.contains(&CURRENT_METHOD) {
+            return Err(AppError::BadRequest("Invalid sign-in session method".to_string()));
+        }
+
+        if session_data.flow.current_method != Some(CURRENT_METHOD) {
+            return Err(AppError::BadRequest("Selected method is correct".to_string()));
+        }
+
+        //* Check code
+        let code = session_data.data.code.as_ref().ok_or_else(||
+            AppError::InternalServerError("Verification code is not set".to_string()) )?;
+
+        if *code != user_req.verification_code {
+            if session_data.data.attempts >= MAX_ATTEMPTS - 1 {
+                self.block_auth_method(&user_req.session_token, &mut session_data).await?;
+            }
+
+            session_data.data.attempts += 1;
+
+            let _ = self.repos.signin_repo.update(&user_req.session_token, &session_data).await?;
+
+            return Err(AppError::BadRequest("Invalid verification code".to_string()));
+        }
+
+
+        //* NEXT STEPS:
+        // Proceed to next stage
+        self.proceed_next_stage(&mut session_data, None).await?;
+
+        // Save changes
+        self.repos.signin_repo.update(&user_req.session_token, &session_data).await?;
+
+        let response = VerifyEmailRes { next_stage: session_data.flow.stage };
+
         Ok(response)
     }
 
@@ -504,62 +551,6 @@ impl ISignInService for SignInService {
         let response = ResendCodeRes;
         Ok(response)
     }
-
-    async fn verify_email(&self, app_state: &AppState, user_req: VerifyEmailReq) -> Result<VerifyEmailRes, AppError> {
-        const CURRENT_STAGE: SignInState = SignInState::VerifyEmailStage;
-        const CURRENT_METHOD: AuthenticationMethod = AuthenticationMethod::EmailVerification;
-        const MAX_ATTEMPTS: u8 = 5;
-
-        let Some(mut session_data) = self.repos.signin_repo.get(&user_req.session_token).await? else {
-            return Err(AppError::BadRequest("Sign-in session not found".to_string()))
-        };
-
-        //* Validate session stage and method
-        if session_data.flow.stage != CURRENT_STAGE {
-            return Err(AppError::BadRequest("Invalid sign-in session stage".to_string()));
-        }
-
-        if !session_data.flow.available_methods.contains(&CURRENT_METHOD) {
-            return Err(AppError::BadRequest("Invalid sign-in session method".to_string()));
-        }
-
-        if session_data.flow.current_method != Some(CURRENT_METHOD) {
-            return Err(AppError::BadRequest("Selected method is correct".to_string()));
-        }
-
-        //* Check code
-        let code = session_data.data.code.as_ref().ok_or_else(||
-            AppError::InternalServerError("Verification code is not set".to_string()) )?;
-
-        if *code != user_req.verification_code {
-            if session_data.data.attempts >= MAX_ATTEMPTS - 1 {
-                // self.repos.signin_repo.delete(&user_req.session_token).await?;
-                //TODO: too harsh? I think we should regenerate code and also add global regeneration limit
-                //TODO: Add ip to blacklist for this user if regeneration limit exceeded
-
-                return Err(AppError::BadRequest("Too many attempts. Try another authentication method".to_string()));
-            }
-
-            session_data.data.attempts += 1;
-
-            let _ = self.repos.signin_repo.update(&user_req.session_token, &session_data).await?;
-
-            return Err(AppError::BadRequest("Invalid verification code".to_string()));
-        }
-
-
-        //* NEXT STEPS:
-        // Proceed to next stage
-        self.proceed_next_stage(&mut session_data, None).await?;
-
-        // Save changes
-        self.repos.signin_repo.update(&user_req.session_token, &session_data).await?;
-
-        let response = VerifyEmailRes { next_stage: session_data.flow.stage };
-
-        Ok(response)
-    }
-
     async fn final_session(&self, app_state: &AppState, user_req: FinalizeSignInReq) -> Result<FinalizeSignInRes, AppError> {
         const CURRENT_STAGE: SignInState = SignInState::Redirect;
 
@@ -570,6 +561,8 @@ impl ISignInService for SignInService {
         if session_data.flow.stage != CURRENT_STAGE {
             return Err(AppError::BadRequest("Invalid sign-in session stage".to_string()));
         }
+
+        self.check_global_max_attempts(&user_req.session_token, &session_data).await?;
 
         // Delete sign-in session
         let _ = self.repos.signin_repo.delete(&user_req.session_token).await?;
@@ -636,6 +629,11 @@ impl SignInService {
             .ok_or_else(|| AppError::InternalServerError("Authentication method not found".to_string()))?;
         session_data.flow.available_methods.remove(i);
 
+        // Swap all blocked methods to available
+        session_data.flow.available_methods.append(&mut session_data.flow.blocked_methods);
+        session_data.flow.blocked_methods.clear();
+        session_data.flow.incorrect_attempts = 0;
+
         // Clear previous method data buffer
         session_data.data = Default::default();
 
@@ -695,6 +693,45 @@ impl SignInService {
             // proceed to finalization
             session_data.flow.current_method = None;
             session_data.flow.stage = SignInState::Redirect;
+        }
+
+        Ok(())
+    }
+
+
+    async fn block_auth_method(&self, session_token: &str, session_data: &mut SignInSession) -> Result<(), AppError> {
+        let current_method = session_data.flow.current_method
+            .ok_or_else(|| AppError::InternalServerError("Current authentication method is not set".to_string()))?;
+
+        session_data.flow.incorrect_attempts += 1;
+
+        let i = session_data.flow.available_methods.iter()
+            .position(|m| *m == current_method)
+            .ok_or_else(|| AppError::InternalServerError("Authentication method not found".to_string()))?;
+        session_data.flow.available_methods.remove(i);
+        session_data.flow.blocked_methods.push(current_method);
+        session_data.flow.current_method = None;
+        session_data.flow.stage = SignInState::SelectAuthenticationMethodsStage;
+
+        session_data.data = Default::default();
+
+        self.repos.signin_repo.update(session_token, session_data).await?;
+
+        Err(AppError::BadRequest("This authentication method is blocked due to too many incorrect attempts. Please select another method".to_string()))
+    }
+
+    async fn check_global_max_attempts(&self, session_token: &str, session_data: &SignInSession) -> Result<(), AppError> {
+        const GLOBAL_MAX_ATTEMPTS: u8 = 3;
+
+        if session_data.flow.incorrect_attempts >= GLOBAL_MAX_ATTEMPTS {
+            //TODO: check if user blocked by ip and user_id
+            //TODO: if so, block by ip on long time
+            //TODO: else, block ip by user_id on short time
+
+            // delete session
+            self.repos.signin_repo.delete(session_token).await?;
+
+            return Err(AppError::BadRequest("Too many incorrect attempts. Please try again later.".to_string()));
         }
 
         Ok(())

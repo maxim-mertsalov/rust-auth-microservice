@@ -61,6 +61,8 @@ pub struct SignInFlow {
     // Flow info
     pub satisfied_methods: Vec<AuthenticationMethod>,
     pub available_methods: Vec<AuthenticationMethod>,
+    pub blocked_methods: Vec<AuthenticationMethod>,
+    pub incorrect_attempts: u8,
     pub current_method: Option<AuthenticationMethod>,
 
     // Current stage

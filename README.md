@@ -10,8 +10,8 @@ A high-performance, results-driven authentication service built with Rust and Ac
 - [ ] Sign-In Flow
   - [x] Plain password authentication
   - [x] Email 2FA (TOTP/Verification)
-  - [ ] Recovery codes integration
-  - [ ] Multi-email support (Alternative login aliases)
+  - [x] Recovery codes integration
+  - [x] Multi-email support (Alternative login aliases)
   - [ ] Passkey (WebAuthn) support
 
 - [ ] External Providers (OAuth2/OIDC)
