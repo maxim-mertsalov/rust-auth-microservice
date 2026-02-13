@@ -414,16 +414,16 @@ impl ISignInService for SignInService {
         }
 
         //* Fetch codes and validate
-        let res = self.repos.recovery_codes_repo.get_by_user_id(&session_data.identifier.user_id).await?;
-        let mut correct = None;
-        for code in res {
-            if bcrypt::verify(&user_req.recovery_code, &code.recovery_code)? {
-                correct = Some(code);
-                break;
-            }
-        }
 
-        match correct {
+        let parts = user_req.recovery_code.split('-').collect::<Vec<&str>>();
+        let prefix = parts.first()
+            .ok_or_else(|| AppError::BadRequest("Invalid recovery code format".to_string()))?;
+
+        let code = parts[1..parts.len()].join("");
+
+        let res = self.repos.recovery_codes_repo.get_by_user_id_and_prefix(&session_data.identifier.user_id, prefix).await?;
+
+        match res {
             Some(code) => {
                 self.repos.recovery_codes_repo.delete_by_id(&code.id.to_string()).await?;
             }

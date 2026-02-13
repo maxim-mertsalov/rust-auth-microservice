@@ -63,6 +63,7 @@ CREATE TABLE user_recovery_emails (
 CREATE TABLE user_recovery_codes (
     id              UUID PRIMARY KEY DEFAULT uuidv7(),
     user_id         UUID NOT NULL,
+    prefix          TEXT NOT NULL,
     recovery_code   TEXT NOT NULL,
     created_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE

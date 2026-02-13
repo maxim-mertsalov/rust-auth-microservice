@@ -6,7 +6,7 @@ use crate::models::auth::recovery_codes::RecoveryCodes;
 #[async_trait::async_trait]
 pub trait RecoveryCodesRepository {
     async fn create(&self, user_id: &str, recovery_codes: Vec<&str>) -> Result<Vec<RecoveryCodes>, DbError>;
-    async fn get_by_user_id_and_code(&self, user_id: &str, recovery_code: &str) -> Result<Option<RecoveryCodes>, DbError>;
+    async fn get_by_user_id_and_prefix(&self, user_id: &str, recovery_code: &str) -> Result<Option<RecoveryCodes>, DbError>;
     async fn get_by_user_id(&self, user_id: &str) -> Result<Vec<RecoveryCodes>, DbError>;
     async fn get_count_of_codes(&self, user_id: &str) -> Result<i64, DbError>;
     async fn exists(&self, user_id: &str) -> Result<bool, DbError>;
@@ -34,11 +34,11 @@ impl RecoveryCodesRepository for RecoveryCodesRepositoryPg {
         }
     }
 
-    async fn get_by_user_id_and_code(&self, user_id: &str, recovery_code: &str) -> Result<Option<RecoveryCodes>, DbError> {
+    async fn get_by_user_id_and_prefix(&self, user_id: &str, prefix: &str) -> Result<Option<RecoveryCodes>, DbError> {
         let user_id = sqlx::types::Uuid::parse_str(user_id)?;
-        match sqlx::query_as::<_, RecoveryCodes>("SELECT * FROM user_recovery_codes WHERE user_id = $1 AND recovery_code = $2")
+        match sqlx::query_as::<_, RecoveryCodes>("SELECT * FROM user_recovery_codes WHERE user_id = $1 AND prefix = $2")
             .bind(user_id)
-            .bind(recovery_code)
+            .bind(prefix)
             .fetch_optional(&*self.pool)
             .await
         {
