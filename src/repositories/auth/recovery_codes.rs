@@ -7,6 +7,7 @@ use crate::models::auth::recovery_codes::RecoveryCodes;
 pub trait RecoveryCodesRepository {
     async fn create(&self, user_id: &str, recovery_codes: Vec<&str>) -> Result<Vec<RecoveryCodes>, DbError>;
     async fn get_by_user_id_and_code(&self, user_id: &str, recovery_code: &str) -> Result<Option<RecoveryCodes>, DbError>;
+    async fn get_by_user_id(&self, user_id: &str) -> Result<Vec<RecoveryCodes>, DbError>;
     async fn get_count_of_codes(&self, user_id: &str) -> Result<i64, DbError>;
     async fn exists(&self, user_id: &str) -> Result<bool, DbError>;
     async fn delete_by_id(&self, recovery_id: &str) -> Result<(), DbError>;
@@ -39,6 +40,18 @@ impl RecoveryCodesRepository for RecoveryCodesRepositoryPg {
             .bind(user_id)
             .bind(recovery_code)
             .fetch_optional(&*self.pool)
+            .await
+        {
+            Ok(sess) => Ok(sess),
+            Err(e) => Err(DbError::from(e)),
+        }
+    }
+
+    async fn get_by_user_id(&self, user_id: &str) -> Result<Vec<RecoveryCodes>, DbError> {
+        let user_id = sqlx::types::Uuid::parse_str(user_id)?;
+        match sqlx::query_as::<_, RecoveryCodes>("SELECT * FROM user_recovery_codes WHERE user_id = $1")
+            .bind(user_id)
+            .fetch_all(&*self.pool)
             .await
         {
             Ok(sess) => Ok(sess),

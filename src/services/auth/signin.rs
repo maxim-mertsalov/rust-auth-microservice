@@ -413,13 +413,20 @@ impl ISignInService for SignInService {
             return Err(AppError::BadRequest("Selected method is correct".to_string()));
         }
 
-        //* Fetch code and validate
-        let res = self.repos.recovery_codes_repo.get_by_user_id_and_code(&session_data.identifier.user_id, &user_req.recovery_code).await?;
-        match res {
-            Some(recovery_code) => {
-                // Mark code as used
-                self.repos.recovery_codes_repo.delete_by_id(&recovery_code.id.to_string()).await?;
-            },
+        //* Fetch codes and validate
+        let res = self.repos.recovery_codes_repo.get_by_user_id(&session_data.identifier.user_id).await?;
+        let mut correct = None;
+        for code in res {
+            if bcrypt::verify(&user_req.recovery_code, &code.recovery_code)? {
+                correct = Some(code);
+                break;
+            }
+        }
+
+        match correct {
+            Some(code) => {
+                self.repos.recovery_codes_repo.delete_by_id(&code.id.to_string()).await?;
+            }
             None => {
                 if session_data.data.attempts >= MAX_ATTEMPTS - 1 {
                     self.block_auth_method(&user_req.session_token, &mut session_data).await?;
@@ -429,7 +436,7 @@ impl ISignInService for SignInService {
 
                 self.repos.signin_repo.update(&user_req.session_token, &session_data).await?;
 
-                return Err(AppError::BadRequest("Invalid recovery code".to_string()));
+                return Err(AppError::BadRequest("Invalid password".to_string()));
             }
         }
 
