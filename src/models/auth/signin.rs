@@ -1,10 +1,10 @@
 use serde::{Deserialize, Serialize};
-use crate::models::auth::utils::{FlowMetadata};
+use crate::models::auth::utils::{AuthFlowMetadata};
 
 /// signup:{token}
 #[derive(Debug, Serialize, Deserialize, Default)]
 pub struct SignInSession {
-    pub metadata: FlowMetadata,
+    pub metadata: AuthFlowMetadata,
     pub identifier: SignInFlowIdentifier,
     pub flow: SignInFlow,
     pub data: SignInFlowData,

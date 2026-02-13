@@ -4,7 +4,7 @@ use crate::dto::auth::utils::TokenCreatorParams;
 use crate::errors::app_error::AppError;
 use crate::models::auth::signin::{AuthenticationMethod, SignInFlow, SignInFlowIdentifier, SignInSession, SignInState};
 use crate::models::auth::users::User;
-use crate::models::auth::utils::{FlowMetadata, Scope};
+use crate::models::auth::utils::{AuthFlowMetadata, Scope};
 use crate::repositories::auth::{AuthRepositories};
 use crate::repositories::auth::recovery_codes::RecoveryCodesRepository;
 use crate::repositories::auth::recovery_emails::RecoveryEmailsRepository;
@@ -80,7 +80,7 @@ impl ISignInService for SignInService {
 
         let parsed_scopes = validate_scopes(&user_req.scopes);
         let session_data = SignInSession {
-            metadata: FlowMetadata {
+            metadata: AuthFlowMetadata {
                 scopes: parsed_scopes,
                 final_redirect_url: user_req.final_redirect_url,
                 device_info: user_req.device_info,
@@ -130,8 +130,6 @@ impl ISignInService for SignInService {
             return Err(AppError::BadRequest("Invalid sign-in session stage".to_string()));
         }
 
-        self.check_global_max_attempts(&user_req.session_token, &session_data).await?;
-
         //* change stage, if needed
         if session_data.flow.stage != CURRENT_STAGE {
             session_data.flow.stage = CURRENT_STAGE;
@@ -157,8 +155,6 @@ impl ISignInService for SignInService {
         if session_data.flow.stage != CURRENT_STAGE {
             return Err(AppError::BadRequest("Invalid sign-in session stage".to_string()));
         }
-
-        self.check_global_max_attempts(&user_req.session_token, &session_data).await?;
 
         if !session_data.flow.available_methods.contains(&user_req.selected_method) {
             return Err(AppError::BadRequest("Unavailable method".to_string()));
@@ -569,8 +565,6 @@ impl ISignInService for SignInService {
             return Err(AppError::BadRequest("Invalid sign-in session stage".to_string()));
         }
 
-        self.check_global_max_attempts(&user_req.session_token, &session_data).await?;
-
         // Delete sign-in session
         let _ = self.repos.signin_repo.delete(&user_req.session_token).await?;
 
@@ -707,10 +701,23 @@ impl SignInService {
 
 
     async fn block_auth_method(&self, session_token: &str, session_data: &mut SignInSession) -> Result<(), AppError> {
+        const GLOBAL_MAX_ATTEMPTS: u8 = 3;
+
         let current_method = session_data.flow.current_method
             .ok_or_else(|| AppError::InternalServerError("Current authentication method is not set".to_string()))?;
 
         session_data.flow.incorrect_attempts += 1;
+
+        if session_data.flow.incorrect_attempts >= GLOBAL_MAX_ATTEMPTS {
+            //TODO: check if user blocked by ip and user_id
+            //TODO: if so, block by ip on long time
+            //TODO: else, block ip by user_id on short time
+
+            // delete session
+            self.repos.signin_repo.delete(session_token).await?;
+
+            return Err(AppError::BadRequest("Too many incorrect attempts. Please try again later.".to_string()));
+        }
 
         let i = session_data.flow.available_methods.iter()
             .position(|m| *m == current_method)
@@ -725,22 +732,5 @@ impl SignInService {
         self.repos.signin_repo.update(session_token, session_data).await?;
 
         Err(AppError::BadRequest("This authentication method is blocked due to too many incorrect attempts. Please select another method".to_string()))
-    }
-
-    async fn check_global_max_attempts(&self, session_token: &str, session_data: &SignInSession) -> Result<(), AppError> {
-        const GLOBAL_MAX_ATTEMPTS: u8 = 3;
-
-        if session_data.flow.incorrect_attempts >= GLOBAL_MAX_ATTEMPTS {
-            //TODO: check if user blocked by ip and user_id
-            //TODO: if so, block by ip on long time
-            //TODO: else, block ip by user_id on short time
-
-            // delete session
-            self.repos.signin_repo.delete(session_token).await?;
-
-            return Err(AppError::BadRequest("Too many incorrect attempts. Please try again later.".to_string()));
-        }
-
-        Ok(())
     }
 }

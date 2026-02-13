@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 use crate::models::auth::sessions::DeviceInfo;
 
 #[derive(Deserialize, Serialize, Debug, Clone, Default)]
-pub struct FlowMetadata {
+pub struct AuthFlowMetadata {
     pub scopes: Vec<Scope>,
     pub final_redirect_url: Option<String>,
     pub device_info: DeviceInfo,
