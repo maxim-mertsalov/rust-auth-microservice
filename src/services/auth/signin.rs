@@ -423,8 +423,22 @@ impl ISignInService for SignInService {
         let res = self.repos.recovery_codes_repo.get_by_user_id_and_prefix(&session_data.identifier.user_id, prefix).await?;
 
         match res {
-            Some(code) => {
-                self.repos.recovery_codes_repo.delete_by_id(&code.id.to_string()).await?;
+            Some(rec_code) => {
+                let code = parts[1..parts.len()].join("");
+
+                if !bcrypt::verify(code, &rec_code.recovery_code)? {
+                    if session_data.data.attempts >= MAX_ATTEMPTS - 1 {
+                        self.block_auth_method(&user_req.session_token, &mut session_data).await?;
+                    }
+
+                    session_data.data.attempts += 1;
+
+                    self.repos.signin_repo.update(&user_req.session_token, &session_data).await?;
+
+                    return Err(AppError::BadRequest("Invalid recovery code".to_string()));
+                }
+
+                self.repos.recovery_codes_repo.delete_by_id(&rec_code.id.to_string()).await?;
             }
             None => {
                 if session_data.data.attempts >= MAX_ATTEMPTS - 1 {
