@@ -19,6 +19,8 @@ pub enum Scope {
     Email, // For email information
     #[serde(rename = "offline_access")]
     OfflineAccess, // For refresh tokens
+    #[serde(rename = "sudo_mode")]
+    SudoMode, // For security-sensitive operations, requires recent authentication. Disallowed in signup flow.
 }
 
 impl Scope {
@@ -28,6 +30,7 @@ impl Scope {
             "profile" => Some(Scope::Profile),
             "email" => Some(Scope::Email),
             "offline_access" => Some(Scope::OfflineAccess),
+            "sudo_mode" => Some(Scope::SudoMode),
             _ => None,
         }
     }

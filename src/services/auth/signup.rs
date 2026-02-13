@@ -331,6 +331,9 @@ impl ISignUpService for SignUpService {
                 Scope::OfflineAccess => {
                     response.refresh_token = Some(refresh_token.clone());
                 }
+                Scope::SudoMode => {
+                    // Sudo mode is not allowed in signup flow, so this case should never happen
+                }
             }
         }
 

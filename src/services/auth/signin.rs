@@ -79,6 +79,8 @@ impl ISignInService for SignInService {
         }
 
         let parsed_scopes = validate_scopes(&user_req.scopes);
+        let requested_sudo= parsed_scopes.contains(&Scope::SudoMode);
+
         let session_data = SignInSession {
             metadata: AuthFlowMetadata {
                 scopes: parsed_scopes,
@@ -88,6 +90,7 @@ impl ISignInService for SignInService {
             identifier: SignInFlowIdentifier {
                 user_id,
                 mfa_enabled: user.is_two_factor,
+                requested_sudo,
             },
             flow: SignInFlow {
                 satisfied_methods: vec![],
@@ -602,6 +605,9 @@ impl ISignInService for SignInService {
                 }
                 Scope::OfflineAccess => {
                     response.refresh_token = Some(refresh_token.clone());
+                }
+                Scope::SudoMode => {
+                    response.sudo_token = Some("TODO: generate sudo token".to_string());
                 }
             }
         }

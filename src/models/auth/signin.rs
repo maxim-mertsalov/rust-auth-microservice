@@ -54,6 +54,7 @@ pub enum SignInState {
 pub struct SignInFlowIdentifier {
     pub user_id: String,
     pub mfa_enabled: bool,
+    pub requested_sudo: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]

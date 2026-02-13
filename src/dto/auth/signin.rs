@@ -173,4 +173,6 @@ pub struct FinalizeSignInRes {
 
     pub first_name: Option<String>, // profile
     pub last_name: Option<String>, // profile
+
+    pub sudo_token: Option<String>, // sudo_mode
 }
