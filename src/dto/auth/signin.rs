@@ -96,18 +96,6 @@ pub struct VerifyRecoveryEmailCodeRes {
 }
 
 
-//# --- resend recovery email code ---
-// Request
-#[derive(Debug, Deserialize)]
-pub struct ResendRecoveryEmailCodeReq {
-    pub session_token: String,
-}
-
-// Response
-#[derive(Debug, Serialize)]
-pub struct ResendRecoveryEmailCodeRes;
-
-
 //# --- set recovery code ---
 // Request
 #[derive(Debug, Deserialize)]

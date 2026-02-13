@@ -414,8 +414,60 @@ Initiate the sign-in process by providing email.
 
 ---
 
+### `POST /auth/signin/method`
+Get all available auth methods.
+
+#### Request:
+```json
+{
+    "session_token": "<session_token>"
+}
+```
+
+#### Response:
+```json
+{
+    "status": "success",
+    "message": "Methods got successfully",
+    "data": {
+        "available_methods": [
+            "password",
+            "email_verification",
+            "recovery_email_verification",
+            "recovery_code"
+        ]
+    }
+}
+```
+
+---
+
+### `POST /auth/signin/method/select`
+Select one of the available methods.
+
+#### Request:
+```json
+{
+    "session_token": "<session_token>",
+    "selected_method": "password"
+}
+```
+
+#### Response:
+```json
+{
+    "status": "success",
+    "message": "Method set successfully",
+    "data": {
+        "next_stage": "WithPasswordStage"
+    }
+}
+```
+
+---
+
 ### `POST /auth/signin/password`
-Submit password for authentication.
+Password authentication
 
 #### Request:
 ```json
@@ -433,6 +485,148 @@ Submit password for authentication.
     "data": {
         "next_stage": "Redirect"
     }
+}
+```
+
+---
+
+### `POST /auth/signin/recovery-email`
+Get all available recovery emails for the user.
+
+#### Request:
+```json
+{
+    "session_token": "<session_token>"
+}
+```
+
+#### Response:
+```json
+{
+    "status": "success",
+    "message": "Recovery emails got successfully",
+    "data": {
+        "recovery_emails": [
+            "e***l@example.com"
+        ]
+    }
+}
+```
+
+---
+
+### `POST /auth/signin/recovery-email/select`
+Select one of the before-gotten emails by id.
+
+#### Request:
+```json
+{
+    "session_token": "<session_token>",
+    "recovery_email_index": 0
+}
+```
+
+#### Response:
+```json
+{
+    "status": "success",
+    "message": "Code was send to recovery email",
+    "data": {
+        "next_stage": "VerifyRecoveryEmailCodeStage"
+    }
+}
+```
+
+---
+
+### `POST /auth/signin/recovery-email/verify`
+Verify email with the code sent to the provided email address.
+
+#### Request:
+```json
+{
+    "session_token": "<session_token>",
+    "verification_code": "000000"
+}
+```
+
+#### Response:
+```json
+{
+    "status": "success",
+    "message": "Recovery email is verified successfully",
+    "data": {
+        "next_stage": "Redirect"
+    }
+}
+```
+
+---
+
+### `POST /auth/signin/recovery-code`
+Recovery code authentication. One time code
+
+#### Request:
+```json
+{
+    "session_token": "<session_token>",
+    "recovery_code": "abcdef123456"
+}
+```
+
+#### Response:
+```json
+{
+    "status": "success",
+    "message": "Recovery code is verified successfully",
+    "data": {
+        "next_stage": "Redirect"
+    }
+}
+```
+
+---
+
+### `POST /auth/signin/email/verify`
+Verify email with the code sent to the provided email address.
+
+#### Request:
+```json
+{
+    "session_token": "<session_token>",
+    "verification_code": "123456"
+}
+```
+
+#### Response:
+```json
+{
+    "status": "success",
+    "message": "Email is verified successfully",
+    "data": {
+        "next_stage": "Redirect"
+    }
+}
+```
+
+---
+
+### `POST /auth/signin/email/resend`
+Resend email or recovery email verification code
+
+#### Request:
+```json
+{
+    "session_token": "<session_token>"
+}
+```
+
+#### Response:
+```json
+{
+    "status": "success",
+    "message": "Email code resent successfully",
+    "data": null
 }
 ```
 
@@ -459,51 +653,6 @@ Finalize the sign-in process and receive tokens.
         "email": "email@example.com",
         "first_name": "Name",
         "last_name": "Lastname"
-    }
-}
-```
-
----
-
-### `POST /auth/signin/email/resend`
-Resend email verification code during sign-in 2FA authentication stage.
-
-#### Request:
-```json
-{
-    "session_token": "<session_token>"
-}
-```
-
-#### Response:
-```json
-{
-    "status": "success",
-    "message": "Email code resent successfully",
-    "data": null
-}
-```
-
----
-
-### `POST /auth/signin/email/verify`
-Verify email with the code sent to the provided email address during sign-in 2FA authentication stage.
-
-#### Request:
-```json
-{
-    "session_token": "<session_token>",
-    "verification_code": "123456"
-}
-```
-
-#### Response:
-```json
-{
-    "status": "success",
-    "message": "Email is verified successfully",
-    "data": {
-        "next_stage": "Redirect"
     }
 }
 ```
