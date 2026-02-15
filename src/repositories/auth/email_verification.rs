@@ -7,33 +7,32 @@ use crate::models::auth::email_verification::{EmailVerification, EMAIL_VERIFICAT
 
 #[async_trait::async_trait]
 pub trait EmailVerificationRepository {
-    async fn create(&self, data: &EmailVerification) -> Result<String, DbError>;
-    async fn get(&self, token: &str) -> Result<Option<EmailVerification>, DbError>;
-    async fn update(&self, token: &str, data: &EmailVerification) -> Result<(), DbError>;
-    async fn delete(&self, token: &str) -> Result<(), DbError>;
+    async fn create(&self, email: &str, data: &EmailVerification) -> Result<(), DbError>;
+    async fn get(&self, email: &str) -> Result<Option<EmailVerification>, DbError>;
+    async fn update(&self, email: &str, data: &EmailVerification) -> Result<(), DbError>;
+    async fn delete(&self, email: &str) -> Result<(), DbError>;
 }
 
 pub struct EmailVerificationRepositoryRedis { pub pool: Arc<RedisPool> , }
 
 #[async_trait::async_trait]
 impl EmailVerificationRepository for EmailVerificationRepositoryRedis {
-    async fn create(&self, data: &EmailVerification) -> Result<String, DbError> {
+    async fn create(&self, email: &str, data: &EmailVerification) -> Result<(), DbError> {
         let mut conn = self.pool.get().await?;
 
         let expiration_seconds = EMAIL_VERIFICATION_LIFETIME * 60;
 
-        let token = uuid::Uuid::new_v4().to_string();
-        let key = format!("{}:{}", EMAIL_VERIFICATION_PREFIX, token.clone());
+        let key = format!("{}:{}", EMAIL_VERIFICATION_PREFIX, email);
 
-        let _: () = conn.set_ex(key.clone(), json!(data).to_string(), expiration_seconds).await?;
+        let _: () = conn.set_ex(key, json!(data).to_string(), expiration_seconds).await?;
 
-        Ok(token)
+        Ok(())
     }
 
-    async fn get(&self, token: &str) -> Result<Option<EmailVerification>, DbError> {
+    async fn get(&self, email: &str) -> Result<Option<EmailVerification>, DbError> {
         let mut conn = self.pool.get().await?;
 
-        let key = format!("{}:{}", EMAIL_VERIFICATION_PREFIX, token);
+        let key = format!("{}:{}", EMAIL_VERIFICATION_PREFIX, email);
 
         let reset_auth_string: Option<String> = conn.get(key).await?;
 
@@ -46,20 +45,20 @@ impl EmailVerificationRepository for EmailVerificationRepositoryRedis {
         }
     }
 
-    async fn update(&self, token: &str, data: &EmailVerification) -> Result<(), DbError> {
+    async fn update(&self, email: &str, data: &EmailVerification) -> Result<(), DbError> {
         let mut conn = self.pool.get().await?;
 
-        let key = format!("{}:{}", EMAIL_VERIFICATION_PREFIX, token);
+        let key = format!("{}:{}", EMAIL_VERIFICATION_PREFIX, email);
 
         let _ = conn.set(key.clone(), json!(data).to_string()).await?;
 
         Ok(())
     }
 
-    async fn delete(&self, token: &str) -> Result<(), DbError> {
+    async fn delete(&self, email: &str) -> Result<(), DbError> {
         let mut conn = self.pool.get().await?;
 
-        let key = format!("{}:{}", EMAIL_VERIFICATION_PREFIX, token);
+        let key = format!("{}:{}", EMAIL_VERIFICATION_PREFIX, email);
 
         let _: usize = conn.del(key).await?;
 

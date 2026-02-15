@@ -12,7 +12,7 @@ pub mod session;
 mod utils;
 pub mod signup;
 pub mod signin;
-mod security_management;
+pub mod security_management;
 
 pub struct AuthServices {
     pub signup_service: Arc<SignUpService> ,

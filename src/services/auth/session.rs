@@ -93,18 +93,22 @@ impl ISessionService for SessionService {
             return Err(AppError::Unauthorized("Device information does not match".to_string()));
         }
 
-
         // 5. Generate new tokens
         let new_refresh_token = TokenBuilder::generate_refresh_token();
         let new_refresh_token_hash = Converter::hash_string(&new_refresh_token);
 
-        let new_access_token = TokenBuilder::encode_access_token(session.user_id, session.session_id.clone(), app_state.get_secret_key())?;
+        let new_access_token = TokenBuilder::encode_access_token(session.user_id.clone(), session.session_id.clone(), app_state.get_secret_key())?;
+
+        let mut new_token_session = session;
+        new_token_session.updated_at = chrono::Utc::now();
+        new_token_session.expires_at = chrono::Utc::now() + chrono::Duration::days(new_token_session.expires_in as i64);
 
         // 6. Update session in DB and Redis with new refresh token
-        let _ = self.repos.tokens_repo.rename(&refresh_token_hash, &new_refresh_token_hash, session.expires_in as i64).await?;
+        let _ = self.repos.tokens_repo.delete(&refresh_token_hash).await?;
+        let _ = self.repos.tokens_repo.create(&new_refresh_token_hash, &new_token_session).await?;
 
         //TODO! RabbitMQ -> UPDATE REFRESH TOKEN
-        let _ = self.repos.sessions_repo.update_with_refresh(&session.session_id, &new_refresh_token_hash).await?;
+        let _ = self.repos.sessions_repo.update_with_refresh(&new_token_session.session_id, &new_refresh_token_hash).await?;
 
         Ok(RefreshTokenRes {
             access_token: new_access_token,

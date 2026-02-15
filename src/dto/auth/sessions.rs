@@ -51,6 +51,7 @@ pub struct GetAllSessionsReq {
 #[derive(Debug, Deserialize)]
 pub struct TerminateSessionReq {
     pub access_token: String,
+    pub sudo_token: String,
 
     pub session_id: String,
 }
@@ -61,5 +62,6 @@ pub struct TerminateSessionReq {
 #[derive(Debug, Deserialize)]
 pub struct TerminateAllOtherSessionsReq {
     pub access_token: String,
+    pub sudo_token: String,
 }
 

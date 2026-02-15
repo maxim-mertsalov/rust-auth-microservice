@@ -5,7 +5,7 @@ use crate::models::auth::recovery_codes::RecoveryCodes;
 
 #[async_trait::async_trait]
 pub trait RecoveryCodesRepository {
-    async fn create(&self, user_id: &str, recovery_codes: Vec<&str>) -> Result<Vec<RecoveryCodes>, DbError>;
+    async fn create(&self, user_id: &str, recovery_codes: Vec<(String, String)>) -> Result<Vec<RecoveryCodes>, DbError>;
     async fn get_by_user_id_and_prefix(&self, user_id: &str, recovery_code: &str) -> Result<Option<RecoveryCodes>, DbError>;
     async fn get_by_user_id(&self, user_id: &str) -> Result<Vec<RecoveryCodes>, DbError>;
     async fn get_count_of_codes(&self, user_id: &str) -> Result<i64, DbError>;
@@ -18,14 +18,28 @@ pub struct RecoveryCodesRepositoryPg { pub pool: Arc<PgPool>  }
 
 #[async_trait::async_trait]
 impl RecoveryCodesRepository for RecoveryCodesRepositoryPg {
-    async fn create(&self, user_id: &str, recovery_codes: Vec<&str>) -> Result<Vec<RecoveryCodes>, DbError> {
+    async fn create(&self, user_id: &str, recovery_codes: Vec<(String, String)>) -> Result<Vec<RecoveryCodes>, DbError> {
         let user_id = sqlx::types::Uuid::parse_str(user_id)?;
 
+        let mut prefixes = Vec::with_capacity(recovery_codes.len());
+        let mut codes = Vec::with_capacity(recovery_codes.len());
+
+        for (prefix, code) in recovery_codes {
+            prefixes.push(prefix);
+            codes.push(code);
+        }
+
         match sqlx::query_as::<_, RecoveryCodes>(
-            "INSERT INTO user_recovery_codes (user_id, recovery_code) SELECT $1, * FROM unnest($2) RETURNING *"
+            r#"
+                    INSERT INTO user_recovery_codes (user_id, prefix, recovery_code)
+                    SELECT $1, unnested.p, unnested.c
+                    FROM UNNEST($2::text[], $3::text[]) AS unnested(p, c)
+                    RETURNING *
+                "#
         )
             .bind(user_id)
-            .bind(&recovery_codes[..])
+            .bind(&prefixes)
+            .bind(&codes)
             .fetch_all(&*self.pool)
             .await
         {

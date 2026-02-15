@@ -10,6 +10,9 @@ pub trait UserRepository{
     async fn get_all(&self) -> Result<Vec<MinFieldsUser>, DbError>;
     async fn get_one(&self, user_id: &str) -> Result<Option<MidFieldsUser>, DbError>;
     async fn update_one(&self, user_id: &str, user_req: &UpdateUserReq) -> Result<MidFieldsUser, DbError>;
+    async fn update_password(&self, user_id: &str, new_password: &str) -> Result<(), DbError>;
+    async fn update_email(&self, user_id: &str, new_email: &str) -> Result<(), DbError>;
+    async fn update_2fa_status(&self, user_id: &str, is_two_factor: bool) -> Result<(), DbError>;
     async fn create(&self, user: &User) -> Result<User, DbError>;
     async fn get_full_by_email(&self, user_email: &str) -> Result<Option<User>, DbError>;
     async fn get_full_by_id(&self, user_id: &str) -> Result<Option<User>, DbError>;
@@ -69,6 +72,42 @@ impl UserRepository for UserRepositoryPg {
             .await?;
 
         Ok(res)
+    }
+
+    async fn update_password(&self, user_id: &str, new_password: &str) -> Result<(), DbError> {
+        match sqlx::query("UPDATE users SET password = $1 WHERE id = $2")
+            .bind(new_password)
+            .bind(user_id)
+            .execute(&*self.pool)
+            .await
+        {
+            Ok(_) => Ok(()),
+            Err(e) => Err(DbError::from(e)),
+        }
+    }
+
+    async fn update_email(&self, user_id: &str, new_email: &str) -> Result<(), DbError> {
+        match sqlx::query("UPDATE users SET email = $1 WHERE id = $2")
+            .bind(new_email)
+            .bind(user_id)
+            .execute(&*self.pool)
+            .await
+        {
+            Ok(_) => Ok(()),
+            Err(e) => Err(DbError::from(e)),
+        }
+    }
+
+    async fn update_2fa_status(&self, user_id: &str, is_two_factor: bool) -> Result<(), DbError> {
+        match sqlx::query("UPDATE users SET is_two_factor = $1 WHERE id = $2")
+            .bind(is_two_factor)
+            .bind(user_id)
+            .execute(&*self.pool)
+            .await
+        {
+            Ok(_) => Ok(()),
+            Err(e) => Err(DbError::from(e)),
+        }
     }
 
     async fn create(&self, user: &User) -> Result<User, DbError> {

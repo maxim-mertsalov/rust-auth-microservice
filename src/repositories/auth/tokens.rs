@@ -23,11 +23,9 @@ impl TokenSessionRepository for TokenSessionRepositoryRedis {
 
         let key = format!("{}:{}", TOKEN_SESSION_PREFIX, refresh_token);
 
-        let expiration_seconds = tokes_session.expires_at.timestamp() - chrono::Utc::now().timestamp();
+        let expiration_seconds: u64 = (tokes_session.expires_at.timestamp() - chrono::Utc::now().timestamp()) as u64;
 
-        let _: () = conn.set(key.clone(), json!(tokes_session).to_string()).await?;
-
-        let _: bool = conn.expire(key, expiration_seconds).await?;
+        let _: () = conn.set_ex(key.clone(), json!(tokes_session).to_string(), expiration_seconds).await?;
 
         Ok(())
     }
